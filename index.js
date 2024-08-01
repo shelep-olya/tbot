@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const path = require("path");
 dotenv.config({ path: "./config.env" });
 const { startGame } = require("./startGame");
-const options = require("./options");
+const { gameOptions, againOptions } = require("./options");
 const token = process.env.TOKEN;
 
 const bot = new TelegramApi(token, { polling: true });
@@ -39,7 +39,6 @@ const start = () => {
       return bot.sendMessage(chatId, message);
     }
     if (text === "/game") {
-      const gameOptions = options.gameOptions;
       await bot.sendMessage(
         chatId,
         "Now i think up about the number between 0 and 9...\nTry to guess it bro"
@@ -55,24 +54,24 @@ const start = () => {
   });
 
   bot.on("callback_query", async (msg) => {
-    const data = msg.data;
+    let data = msg.data;
+    data = data === "/again" ? data : data * 1;
     const chatId = msg.message.chat.id;
     if (data === "/again") {
-      const gameOptions = options.gameOptions;
       return startGame(bot, chats, chatId, gameOptions);
     }
     if (data === chats[chatId]) {
       return await bot.sendMessage(
         chatId,
         "Congrats, you're 100% right",
-        options.againOptions
+        againOptions
       );
     }
     if (data !== chats[chatId]) {
       return await bot.sendMessage(
         chatId,
-        `Congrats, you're 100% wrong, i thought about this one but chose ${chats[chatId]}`,
-        options.againOptions
+        `Oops, you're 100% wrong, i thought about this one but chose ${chats[chatId]}`,
+        againOptions
       );
     }
   });
