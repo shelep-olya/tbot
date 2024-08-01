@@ -2,9 +2,13 @@ const TelegramApi = require("node-telegram-bot-api");
 const dotenv = require("dotenv");
 const path = require("path");
 dotenv.config({ path: "./config.env" });
+const { startGame } = require("./startGame");
+const options = require("./options");
 const token = process.env.TOKEN;
 
 const bot = new TelegramApi(token, { polling: true });
+
+const chats = {};
 
 const start = () => {
   bot.on("message", async (msg) => {
@@ -15,6 +19,7 @@ const start = () => {
 
     bot.setMyCommands([
       { command: "/start", description: "Greeting" },
+      { command: "/game", description: "Start the intuition game" },
       { command: "/info", description: "Get user information" },
     ]);
     if (text === "/start") {
@@ -34,11 +39,12 @@ const start = () => {
       return bot.sendMessage(chatId, message);
     }
     if (text === "/game") {
+      const gameOptions = options.gameOptions;
       await bot.sendMessage(
         chatId,
         "Now i think up about the number between 0 and 9...\nTry to guess it bro"
       );
-      const randomNumber = Math.floor(Math.random() * 10);
+      return startGame(bot, chats, chatId, gameOptions);
     }
     return bot
       .sendSticker(
@@ -46,6 +52,29 @@ const start = () => {
         "https://tlgrm.eu/_/stickers/e19/f38/e19f384b-951a-3074-81d9-a8316ec23a70/11.webp"
       )
       .then(bot.sendMessage(chatId, `Didn't get ya bro. Try again later\n😉`));
+  });
+
+  bot.on("callback_query", async (msg) => {
+    const data = msg.data;
+    const chatId = msg.message.chat.id;
+    if (data === "/again") {
+      const gameOptions = options.gameOptions;
+      return startGame(bot, chats, chatId, gameOptions);
+    }
+    if (data === chats[chatId]) {
+      return await bot.sendMessage(
+        chatId,
+        "Congrats, you're 100% right",
+        options.againOptions
+      );
+    }
+    if (data !== chats[chatId]) {
+      return await bot.sendMessage(
+        chatId,
+        `Congrats, you're 100% wrong, i thought about this one but chose ${chats[chatId]}`,
+        options.againOptions
+      );
+    }
   });
 };
 
